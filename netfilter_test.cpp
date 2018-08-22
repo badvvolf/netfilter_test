@@ -1,4 +1,8 @@
+
+#include <string>
+
 #include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -11,34 +15,46 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <fstream>
 
+
+#include <unordered_map>
+
+using namespace std;
+
+
+unordered_map <string, int> rule;
+	
 
 bool CheckHostHeader(uint8_t * data)
 {
 	char *savePtr;
 	char * token;
 	//차단할 대상인지 체크한다
-	token = strtok_r((char *)data, "\r\n", &savePtr);
+	token = strtok_r((char *)data, "\n", &savePtr);
 	
 	while(token !=NULL && strncmp(token, "Host: ", 6))
 	{
-		token = strtok_r(NULL, "\r\n", &savePtr);
+		token = strtok_r(NULL, "\n", &savePtr);
 	}
 
 	if(token == NULL)
 		return false;
 
-
+ 
 	token = strtok_r((char *)token, " ", &savePtr);
 
-	if(!strcmp("sex.com", savePtr))
+	if( rule[string(savePtr)] ==1 )
 	{
+		cout << "filtered : " << string(savePtr)<< endl;
 		return true;
 	}
 
 	return false;
 
 }
+
+
 
 static bool Filtering(struct nfq_data *tb)
 {
@@ -120,6 +136,26 @@ int main(int argc, char **argv)
 	int rv;
 	char buf[4096] __attribute__((aligned));
 
+
+	string filePath = "banList.csv";
+
+	// read File
+	ifstream banFile(filePath.data());
+	if( banFile.is_open() ){
+		string * line = new string();
+		int i =0;
+		while(getline(banFile, *line)){
+    		rule[*line] = 1;
+		}
+
+		banFile.close();
+	}
+	else
+	{
+		printf("No banList.csv file\n");
+		exit(1);
+	}
+
 	printf("opening library handle\n");
 	h = nfq_open();
 	if (!h)
@@ -163,7 +199,6 @@ int main(int argc, char **argv)
 	{
 		if ((rv = recv(fd, buf, sizeof(buf), 0)) >= 0)
 		{
-			//printf("pkt received\n");
 			nfq_handle_packet(h, buf, rv);
 			continue;
 		}
