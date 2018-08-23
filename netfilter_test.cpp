@@ -1,6 +1,5 @@
 
 #include <string>
-
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
@@ -18,12 +17,12 @@
 #include <fstream>
 
 
-#include <unordered_map>
-
+//#include <unordered_map>
+#include <set>
 using namespace std;
 
 
-unordered_map <string, int> rule;
+set <string> rule;
 	
 
 bool CheckHostHeader(uint8_t * data)
@@ -44,7 +43,7 @@ bool CheckHostHeader(uint8_t * data)
  
 	token = strtok_r((char *)token, " ", &savePtr);
 
-	if( rule[string(savePtr)] ==1 )
+	if( rule.find(string(savePtr)) != rule.end())
 	{
 		cout << "filtered : " << string(savePtr)<< endl;
 		return true;
@@ -145,7 +144,7 @@ int main(int argc, char **argv)
 		string * line = new string();
 		int i =0;
 		while(getline(banFile, *line)){
-    		rule[*line] = 1;
+    		rule.insert(*line);
 		}
 
 		banFile.close();
